@@ -1,12 +1,16 @@
-# -*- coding: utf-8 -*-
-
+import psycopg2
+import psycopg2.extras
 import urllib.request
 import json
-import sqlite3
+
+host_name = 
+port_number = 
+dbname = 
+rolename = 
+passwd = 
 
 def main():
-    dbpath = {YOUR_DB}
-    conn = sqlite3.connect(dbpath)
+    conn = psycopg2.connect(database=dbname, host=host_name, port=port_number, user=rolename, password=passwd)
     cur = conn.cursor()
     cur.execute("SELECT artist, song FROM not_found_similar_track ORDER BY artist ASC")
     item_list = cur.fetchall()
@@ -15,7 +19,7 @@ def main():
         song = it[1]
         not_found_track_data = (artist, song)
         cur.execute(
-            "SELECT * FROM similar WHERE from_artist = ? AND from_song = ?",
+            "SELECT * FROM similar_track WHERE from_artist = %s AND from_song = %s",
             not_found_track_data)
         similar_list = cur.fetchall()
         if similar_list == []:
@@ -45,15 +49,15 @@ def main():
                     similar_track_data = (artist, song, artist_infomation, song_infomation, match_index)
                     print(similar_track_data)
                     cur.execute(
-                        "INSERT INTO similar(from_artist, from_song, to_artist, to_song, match_index)VALUES(?, ?, ?, ?, ?)",
+                        "INSERT INTO similar_track(from_artist, from_song, to_artist, to_song, match_index)VALUES(%s, %s, %s, %s, %s)",
                         similar_track_data)
-                    cur.execute("DELETE from not_found_similar_track WHERE artist = ? AND song = ?",
+                    cur.execute("DELETE from not_found_similar_track WHERE artist = %s AND song = %s",
                                     not_found_track_data)
                     conn.commit()
             except IndexError:
                 continue
         else:
-            cur.execute("DELETE from not_found_similar_track WHERE artist = ? AND song = ?", not_found_track_data)
+            cur.execute("DELETE from not_found_similar_track WHERE artist = %s AND song = %s", not_found_track_data)
             conn.commit()
     conn.close()
 

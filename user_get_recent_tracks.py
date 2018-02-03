@@ -1,7 +1,13 @@
-# -*- coding: utf-8 -*-
+import psycopg2
+import psycopg2.extras
 import urllib.request
 import json
-import sqlite3
+
+host_name = 
+port_number = 
+dbname = 
+rolename = 
+passwd = 
 
 def main():
     call_url1 = "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&limit=200&user="
@@ -15,8 +21,7 @@ def main():
     data = json.loads(address_json.read())
     recenttracks = data["recenttracks"]
     track = recenttracks["track"]
-    dbpath = {YOUR_DB}
-    conn = sqlite3.connect(dbpath)
+    conn = psycopg2.connect(database=dbname, host=host_name, port=port_number, user=rolename, password=passwd)
     cur = conn.cursor()
     for i in range(200):
         try:
@@ -34,16 +39,17 @@ def main():
             print("聴取日時:{}".format(time_stamp))
             track_data1 = (artist_infomation, song_infomation, album_infomation, time_stamp)
             track_data2 = (artist_infomation, song_infomation)
-            cur.execute("""INSERT INTO track_data(artist, song, album, time_stamp)VALUES(?, ?, ?, ?)""", track_data1)
+            cur.execute("""INSERT INTO track_data(artist, song, album, time_stamp)VALUES(%s, %s, %s, %s)""", track_data1)
             conn.commit()
-            cur.execute("INSERT INTO ungot_similar_tracks(artist, track)VALUES(?, ?)", track_data2)
+            cur.execute("INSERT INTO ungot_similar_tracks(artist, track)VALUES(%s, %s)", track_data2)
             conn.commit()
 
         except KeyError:
             continue
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
             break
     conn.close()
+
 
 if __name__ == '__main__':
     main()

@@ -1,26 +1,31 @@
-# -*- coding: utf-8 -*-
-
+import psycopg2
+import psycopg2.extras
 import urllib.request
 import json
-import sqlite3
+
+host_name = 
+port_number = 
+dbname = 
+rolename = 
+passwd = 
+
 
 def main():
-    dbpath = {YOUR_DB}
-    conn = sqlite3.connect(dbpath)
+    conn = psycopg2.connect(database=dbname, host=host_name, port=port_number, user=rolename, password=passwd)
     cur = conn.cursor()
     '''cur.execute("SELECT DISTINCT artist, track FROM ungot_similar_tracks ORDER BY artist DESC, track DESC")'''
-    cur.execute("SELECT DISTINCT to_artist, to_song FROM similar ORDER BY to_artist DESC, to_song ASC")
+    cur.execute("SELECT DISTINCT to_artist, to_song FROM similar_track ORDER BY to_artist DESC, to_song ASC")
     item_list = cur.fetchall()
     for it in item_list:
         artist = it[0]
         song = it[1]
         got_similar_track_data = (artist, song)
         cur.execute(
-            "SELECT * FROM similar WHERE from_artist = ? AND from_song = ?",
+            "SELECT * FROM similar_track WHERE from_artist = %s AND from_song = %s",
             got_similar_track_data)
         similar_list = cur.fetchall()
         if similar_list == []:
-            cur.execute("SELECT * FROM not_found_similar_track WHERE artist = ? AND song = ?", got_similar_track_data)
+            cur.execute("SELECT * FROM not_found_similar_track WHERE artist = %s AND song = %s", got_similar_track_data)
             not_similar_list = cur.fetchall()
             if not_similar_list == []:
                 print(artist)
@@ -50,20 +55,20 @@ def main():
                         similar_track_data = (artist, song, artist_infomation, song_infomation, match_index)
                         print(similar_track_data)
                         cur.execute(
-                        "INSERT INTO similar(from_artist, from_song, to_artist, to_song, match_index)VALUES(?, ?, ?, ?, ?)",
-                        similar_track_data)
+                            "INSERT INTO similar_track(from_artist, from_song, to_artist, to_song, match_index)VALUES(%s, %s, %s, %s, %s)",
+                            similar_track_data)
                         conn.commit()
-                        cur.execute("DELETE from ungot_similar_tracks WHERE artist = ? AND track = ?",
+                        cur.execute("DELETE from ungot_similar_tracks WHERE artist = %s AND track = %s",
                                     got_similar_track_data)
                         conn.commit()
                 except IndexError:
                     artist = urllib.parse.unquote(artist)
                     song = urllib.parse.unquote(song)
                     not_found_tracks = (artist, song)
-                    cur.execute("INSERT INTO not_found_similar_track(artist, song)VALUES(?, ?)", not_found_tracks)
+                    cur.execute("INSERT INTO not_found_similar_track(artist, song)VALUES(%s, %s)", not_found_tracks)
                     conn.commit()
                     print("該当トラックの情報がありませんでした")
-                    cur.execute("DELETE from ungot_similar_tracks WHERE artist = ? AND track = ?",
+                    cur.execute("DELETE from ungot_similar_tracks WHERE artist = %s AND track = %s",
                                 got_similar_track_data)
                     conn.commit()
                     continue
@@ -74,7 +79,7 @@ def main():
                     f.write("曲名:" + song)
                     f.write("\r")
                     f.close()
-                    cur.execute("DELETE from ungot_similar_tracks WHERE artist = ? AND track = ?",
+                    cur.execute("DELETE from ungot_similar_tracks WHERE artist = %s AND track = %s",
                                 got_similar_track_data)
                     conn.commit()
                     continue
@@ -85,16 +90,17 @@ def main():
                     print("pass")
                     continue
             else:
-                cur.execute("DELETE from ungot_similar_tracks WHERE artist = ? AND track = ?",
+                cur.execute("DELETE from ungot_similar_tracks WHERE artist = %s AND track = %s",
                             got_similar_track_data)
                 conn.commit()
                 print("該当トラックの情報がありませんでした")
         else:
-            cur.execute("DELETE from ungot_similar_tracks WHERE artist = ? AND track = ?",
+            cur.execute("DELETE from ungot_similar_tracks WHERE artist = %s AND track = %s",
                         got_similar_track_data)
             conn.commit()
             print("情報取得済み")
     conn.close()
+
 
 
 if __name__ == '__main__':

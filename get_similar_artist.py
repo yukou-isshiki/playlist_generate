@@ -1,12 +1,18 @@
+import psycopg2
+import psycopg2.extras
 import urllib.request
 import json
-import sqlite3
+
+host_name = 
+port_number = 
+dbname = 
+rolename = 
+passwd = 
 
 def main():
-    dbpath = {YOUR_DB}
-    conn = sqlite3.connect(dbpath)
+    conn = psycopg2.connect(database=dbname, host=host_name, port=port_number, user=rolename, password=passwd)
     cur = conn.cursor()
-    cur.execute("SELECT DISTINCT to_artist FROM similar ORDER BY to_artist DESC")
+    cur.execute("SELECT DISTINCT to_artist FROM similar_track ORDER BY to_artist DESC")
     item_list = cur.fetchall()
     for it in item_list:
         artist = it[0]
@@ -29,10 +35,10 @@ def main():
                 to_artist = artist_infomation["name"]
                 match_index = artist_infomation["match"]
                 similar_artist_data = (artist, to_artist, match_index)
-                cur.execute("SELECT * FROM similar_artist WHERE from_artist = ? AND to_artist = ? AND match_index = ?", similar_artist_data)
+                cur.execute("SELECT * FROM similar_artist WHERE from_artist = %s AND to_artist = %s AND match_index = %s", similar_artist_data)
                 similar_artists_list = cur.fetchall()
                 if similar_artists_list == []:
-                    cur.execute("INSERT INTO similar_artist(from_artist, to_artist, match_index)VALUES(?, ?, ?)", similar_artist_data)
+                    cur.execute("INSERT INTO similar_artist(from_artist, to_artist, match_index)VALUES(%s, %s, %s)", similar_artist_data)
                     conn.commit()
                     print(similar_artist_data)
         except:
